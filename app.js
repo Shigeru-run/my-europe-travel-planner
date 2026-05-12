@@ -3,6 +3,8 @@
 // ============================================
 
 const STORAGE_KEY = 'travel-planner-data';
+const HOME_CENTER = [48.5, 7.0];
+const HOME_ZOOM = 5;
 
 // 状態
 let state = {
@@ -63,7 +65,7 @@ function uuid() {
 // ============================================
 function initMap() {
   // 西欧を中心に表示
-  map = L.map('map').setView([48.5, 7.0], 5);
+  map = L.map('map').setView(HOME_CENTER, HOME_ZOOM);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
@@ -291,9 +293,7 @@ function renderPinsList() {
   filtered.forEach(pin => {
     const li = document.createElement('li');
     li.className = 'pin-item';
-    const dateText = pin.dateUnknown
-      ? ' · 日付不明'
-      : (pin.date ? ' · ' + pin.date : '');
+    const dateText = (!pin.dateUnknown && pin.date) ? ' · ' + pin.date : '';
     const trip = state.trips.find(t => t.id === pin.tripId);
     const tripBadge = trip
       ? `<span class="pin-trip-badge" style="background:${trip.color}" title="${escapeHtml(trip.name)}">${escapeHtml(trip.name)}</span>`
@@ -404,6 +404,9 @@ function savePin() {
   saveData();
   renderAll();
   closePinModal();
+
+  // 入力完了後はホームポジションに戻す
+  map.setView(HOME_CENTER, HOME_ZOOM);
 }
 
 function deletePin(id) {
