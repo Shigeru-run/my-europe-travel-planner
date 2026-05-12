@@ -1,0 +1,518 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+  color: #333;
+  overflow: hidden;
+  /* iOS PWAでステータスバー領域に被らないように */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #2c3e50; /* セーフエリア外の色（テーマカラー） */
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+#sidebar {
+  width: 340px;
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+#sidebar header h1 {
+  font-size: 20px;
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+#map {
+  flex: 1;
+  height: 100vh;
+}
+
+/* セクション共通 */
+section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+section:last-child {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.section-header h2 {
+  font-size: 14px;
+  color: #495057;
+  font-weight: 600;
+}
+
+/* 検索 */
+.search-section {
+  display: flex;
+  gap: 6px;
+}
+
+#search-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+#search-btn {
+  padding: 8px 12px;
+  background: #495057;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#search-btn:hover {
+  background: #343a40;
+}
+
+/* 統計 */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.stat-item {
+  background: white;
+  padding: 10px 8px;
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+/* 旅程・ピン リスト */
+#trips-list, #pins-list {
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.trip-item, .pin-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.trip-item:hover, .pin-item:hover {
+  background: #e9ecef;
+}
+
+.trip-color-box {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.trip-name, .pin-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-visible-toggle {
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+}
+
+.pin-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.pin-status-dot.visited { background: #E91E63; }
+.pin-status-dot.planned { background: #FF9800; }
+
+#filter-status {
+  padding: 4px 6px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.empty-msg {
+  text-align: center;
+  color: #adb5bd;
+  font-size: 12px;
+  padding: 12px 0;
+}
+
+/* ボタン */
+.small-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #2c3e50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.small-btn:hover {
+  background: #1a252f;
+}
+
+.data-section {
+  display: flex;
+  gap: 8px;
+}
+
+.data-section button {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.data-section button:hover {
+  background: #e9ecef;
+}
+
+.hint {
+  font-size: 12px;
+  color: #6c757d;
+  text-align: center;
+  padding: 8px;
+  background: #fff3cd;
+  border-radius: 4px;
+}
+
+/* モーダル */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content h3 {
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: #2c3e50;
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #495057;
+  font-weight: 500;
+}
+
+.required {
+  color: #dc3545;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="date"],
+.modal-content select,
+.modal-content textarea {
+  width: 100%;
+  padding: 8px 10px;
+  margin-top: 4px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.modal-content input[type="color"] {
+  width: 60px;
+  height: 36px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+/* 日付不明など、インラインのチェックボックス用 */
+.modal-content label.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -4px;
+  margin-bottom: 14px;
+  font-weight: 400;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.modal-content label.checkbox-row input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.modal-content input[type="date"]:disabled {
+  background: #f1f3f5;
+  color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.modal-content textarea {
+  resize: vertical;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.modal-buttons button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal-buttons button[type="submit"] {
+  background: #2c3e50;
+  color: white;
+}
+
+.modal-buttons button[type="submit"]:hover {
+  background: #1a252f;
+}
+
+.modal-buttons button[type="button"] {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.modal-buttons button.danger {
+  background: #dc3545;
+  color: white;
+}
+
+.modal-buttons button.danger:hover {
+  background: #c82333;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 取込モード選択モーダル */
+.import-summary {
+  color: #6c757d;
+  font-size: 13px;
+  margin-bottom: 16px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.import-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.import-option {
+  text-align: left;
+  padding: 14px 16px;
+  background: white;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.import-option:hover {
+  background: #f1f3f5;
+  border-color: #adb5bd;
+}
+
+.import-option.primary {
+  border-color: #2c3e50;
+  background: #f8f9fa;
+}
+
+.import-option.primary:hover {
+  background: #e9ecef;
+  border-color: #1a252f;
+}
+
+.import-option .opt-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.import-option .opt-desc {
+  font-size: 12px;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.import-cancel {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.import-cancel:hover {
+  color: #495057;
+  text-decoration: underline;
+}
+
+/* Leafletのカスタムアイコン */
+.custom-pin {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid white;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.custom-pin.visited { background: #E91E63; }
+.custom-pin.planned { background: #FF9800; }
+
+.pin-popup {
+  font-size: 13px;
+}
+
+.pin-popup h4 {
+  margin-bottom: 6px;
+  color: #2c3e50;
+}
+
+.pin-popup .popup-meta {
+  color: #6c757d;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.pin-popup .popup-memo {
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+.pin-popup .popup-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pin-popup button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #ced4da;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.pin-popup button:hover {
+  background: #e9ecef;
+}
+
+/* レスポンシブ */
+@media (max-width: 768px) {
+  #app {
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    height: 45vh;
+    border-right: none;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+  }
+  #map {
+    height: 55vh;
+  }
+
+  /* スマホでは操作ボタンを上に配置（スクロール不要に） */
+  #sidebar > header        { order: 0; }
+  #sidebar > .search-section { order: 1; }
+  #sidebar > .data-section   { order: 2; }
+  #sidebar > .stats          { order: 3; }
+  #sidebar > .trips-section  { order: 4; }
+  #sidebar > .pins-section   { order: 5; }
+  #sidebar > .hint           { order: 6; }
+
+  /* スマホでは一覧の高さを抑える */
+  #trips-list, #pins-list {
+    max-height: 120px;
+  }
+}

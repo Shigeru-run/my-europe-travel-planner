@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>西欧旅行プランナー</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3a8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="西欧旅行プランナー">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <header>
+      <h1>🌍 西欧旅行プランナー</h1>
+    </header>
+
+    <section class="search-section">
+      <input type="text" id="search-input" placeholder="都市名で検索（例: Paris）" />
+      <button id="search-btn">検索</button>
+    </section>
+
+    <section class="stats">
+      <div class="stat-item">
+        <span class="stat-label">訪問済み</span>
+        <span class="stat-value" id="stat-visited">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">訪問予定</span>
+        <span class="stat-value" id="stat-planned">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">旅程数</span>
+        <span class="stat-value" id="stat-trips">0</span>
+      </div>
+    </section>
+
+    <section class="trips-section">
+      <div class="section-header">
+        <h2>旅程一覧</h2>
+        <button id="add-trip-btn" class="small-btn">＋新規</button>
+      </div>
+      <ul id="trips-list"></ul>
+    </section>
+
+    <section class="pins-section">
+      <div class="section-header">
+        <h2>ピン一覧</h2>
+        <select id="filter-status">
+          <option value="all">すべて</option>
+          <option value="visited">訪問済み</option>
+          <option value="planned">訪問予定</option>
+        </select>
+      </div>
+      <ul id="pins-list"></ul>
+    </section>
+
+    <section class="data-section">
+      <button id="export-btn">📥 JSON</button>
+      <button id="import-btn">📤 取込</button>
+      <button id="export-image-btn">🖼️ 地図画像</button>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+    </section>
+
+    <p class="hint">💡 地図をクリックしてピンを追加</p>
+  </aside>
+
+  <main id="map"></main>
+</div>
+
+<!-- ピン追加・編集モーダル -->
+<div id="pin-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="pin-modal-title">ピンを追加</h3>
+    <form id="pin-form">
+      <label>
+        都市名 <span class="required">*</span>
+        <input type="text" id="pin-name" required>
+      </label>
+      <label>
+        ステータス
+        <select id="pin-status">
+          <option value="visited">訪問済み</option>
+          <option value="planned">訪問予定</option>
+        </select>
+      </label>
+      <label>
+        日付
+        <input type="date" id="pin-date">
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="pin-date-unknown">
+        <span>日付不明（思い出せない）</span>
+      </label>
+      <label>
+        旅程（任意）
+        <select id="pin-trip">
+          <option value="">（旅程に含めない）</option>
+        </select>
+      </label>
+      <label>
+        メモ
+        <textarea id="pin-memo" rows="3"></textarea>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" id="pin-delete-btn" class="danger hidden">削除</button>
+        <button type="button" id="pin-cancel-btn">キャンセル</button>
+        <button type="submit">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 旅程追加・編集モーダル -->
+<div id="trip-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="trip-modal-title">旅程を追加</h3>
+    <form id="trip-form">
+      <label>
+        旅程名 <span class="required">*</span>
+        <input type="text" id="trip-name" required placeholder="例: 2026年夏 パリ・ローマ旅行">
+      </label>
+      <label>
+        色
+        <input type="color" id="trip-color" value="#FF5722">
+      </label>
+      <div class="modal-buttons">
+        <button type="button" id="trip-delete-btn" class="danger hidden">削除</button>
+        <button type="button" id="trip-cancel-btn">キャンセル</button>
+        <button type="submit">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 取込モード選択モーダル -->
+<div id="import-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>取込方法を選んでください</h3>
+    <p class="import-summary" id="import-summary"></p>
+    <div class="import-options">
+      <button type="button" id="import-merge-btn" class="import-option primary">
+        <div class="opt-title">🔀 結合（推奨）</div>
+        <div class="opt-desc">既存データを残したまま、新しい情報を追加・更新します。同じピンが両側にある場合は、更新日時が新しい方を採用します。</div>
+      </button>
+      <button type="button" id="import-replace-btn" class="import-option">
+        <div class="opt-title">♻️ 置き換え</div>
+        <div class="opt-desc">既存データをすべて削除して、JSONファイルの内容で完全に上書きします。</div>
+      </button>
+      <button type="button" id="import-cancel-btn" class="import-cancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
