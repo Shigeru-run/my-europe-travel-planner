@@ -2,7 +2,7 @@
 // オフライン対応用キャッシュ
 //
 // バージョンを変えるとブラウザが古いキャッシュを削除して新しいキャッシュを構築する
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE_NAME = `travel-planner-europe-${VERSION}`;
 
 // アプリ本体（同一オリジン）

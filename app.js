@@ -7,7 +7,8 @@ const STORAGE_KEY = 'travel-planner-data';
 // 状態
 let state = {
   pins: [],
-  trips: []
+  trips: [],
+  showPolylines: false
 };
 
 // 地図関連
@@ -25,6 +26,7 @@ function init() {
   loadData();
   initMap();
   bindEvents();
+  document.getElementById('show-polylines').checked = !!state.showPolylines;
   renderAll();
 }
 
@@ -38,6 +40,7 @@ function loadData() {
       state = JSON.parse(raw);
       if (!state.pins) state.pins = [];
       if (!state.trips) state.trips = [];
+      if (typeof state.showPolylines !== 'boolean') state.showPolylines = false;
       // マイグレーション: 旧データに updatedAt が無ければ 0 を補完
       state.pins.forEach(p => { if (typeof p.updatedAt !== 'number') p.updatedAt = 0; });
       state.trips.forEach(t => { if (typeof t.updatedAt !== 'number') t.updatedAt = 0; });
@@ -103,20 +106,32 @@ function renderPinMarkers() {
 }
 
 function buildPopupHtml(pin) {
-  const trip = state.trips.find(t => t.id === pin.tripId);
   const statusLabel = pin.status === 'visited' ? '✅ 訪問済み' : '📅 訪問予定';
-  const tripLabel = trip ? `<div class="popup-meta">🗺️ ${escapeHtml(trip.name)}</div>` : '';
   const dateLabel = pin.dateUnknown
     ? `<div class="popup-meta">📆 日付不明</div>`
     : (pin.date ? `<div class="popup-meta">📆 ${pin.date}</div>` : '');
   const memo = pin.memo ? `<div class="popup-memo">${escapeHtml(pin.memo)}</div>` : '';
+
+  const tripOptions = state.trips.map(t =>
+    `<option value="${t.id}" ${t.id === pin.tripId ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+  ).join('');
+  const tripSelector = `
+    <div class="popup-trip-row">
+      <label>🗺️ 旅程
+        <select class="popup-trip-select" data-id="${pin.id}">
+          <option value="" ${!pin.tripId ? 'selected' : ''}>（旅程に含めない）</option>
+          ${tripOptions}
+        </select>
+      </label>
+    </div>
+  `;
 
   return `
     <div class="pin-popup">
       <h4>${escapeHtml(pin.name)}</h4>
       <div class="popup-meta">${statusLabel}</div>
       ${dateLabel}
-      ${tripLabel}
+      ${tripSelector}
       ${memo}
       <div class="popup-actions">
         <button data-action="edit" data-id="${pin.id}">編集</button>
@@ -143,12 +158,37 @@ function bindPopupEvents(pinId) {
       }
     };
   });
+
+  const tripSelect = popup.querySelector('.popup-trip-select');
+  if (tripSelect) {
+    tripSelect.onchange = (e) => {
+      const id = e.target.dataset.id;
+      changePinTrip(id, e.target.value || null);
+    };
+  }
+}
+
+function changePinTrip(pinId, newTripId) {
+  const pin = state.pins.find(p => p.id === pinId);
+  if (!pin) return;
+  pin.tripId = newTripId;
+  pin.updatedAt = Date.now();
+  saveData();
+
+  // ポップアップを開いたままサイドバーとポリラインを更新
+  renderTripsList();
+  renderPinsList();
+  renderStats();
+  renderPolylines();
 }
 
 function renderPolylines() {
   // 既存ポリラインを削除
   Object.values(tripPolylines).forEach(p => map.removeLayer(p));
   tripPolylines = {};
+
+  // グローバル設定: 経路線を表示しない場合は早期リターン
+  if (!state.showPolylines) return;
 
   state.trips.forEach(trip => {
     if (trip.visible === false) return;
@@ -254,9 +294,14 @@ function renderPinsList() {
     const dateText = pin.dateUnknown
       ? ' · 日付不明'
       : (pin.date ? ' · ' + pin.date : '');
+    const trip = state.trips.find(t => t.id === pin.tripId);
+    const tripBadge = trip
+      ? `<span class="pin-trip-badge" style="background:${trip.color}" title="${escapeHtml(trip.name)}">${escapeHtml(trip.name)}</span>`
+      : '';
     li.innerHTML = `
       <span class="pin-status-dot ${pin.status}"></span>
       <span class="pin-name">${escapeHtml(pin.name)}${dateText}</span>
+      ${tripBadge}
     `;
     li.onclick = () => {
       map.setView([pin.lat, pin.lng], 10);
@@ -653,6 +698,13 @@ function bindEvents() {
 
   // フィルター
   document.getElementById('filter-status').onchange = renderPinsList;
+
+  // 経路線表示トグル
+  document.getElementById('show-polylines').onchange = (e) => {
+    state.showPolylines = e.target.checked;
+    saveData();
+    renderPolylines();
+  };
 
   // 検索
   document.getElementById('search-btn').onclick = searchCity;
